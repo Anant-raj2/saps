@@ -18,7 +18,7 @@ private:
   // Recieve from a connection
 
 public:
-  Server();
+  Server(int& argc, char **argv[]);
   ~Server();
   //Run the Server
 };

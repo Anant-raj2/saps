@@ -1,10 +1,10 @@
 project "Client"
-  file {"src/**.cpp", "src/**.h"}
+  files {"src/**.cpp", "src/**.h"}
   language "C++"
-  kind "ConsoleApp",
+  kind "ConsoleApp"
   staticruntime "off"
 
-  includedir{
+  includedirs{
     "src",
     "%{wks.location}/common/src"
   }

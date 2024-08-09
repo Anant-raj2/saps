@@ -1,5 +1,4 @@
 #include "Server.h"
-#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -8,24 +7,28 @@
 #include <sys/types.h>
 
 namespace ServerLayer {
-int Server::init() {
+Server::Server(int &argc, char **argv[]) {
   int status;
   struct addrinfo hints;
 
+  if (argc != 2) {
+    std::cout << "Arguments not provided" << '\n';
+    exit(1);
+  }
+
   memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_UNSPEC;
+  hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  if ((status = getaddrinfo(NULL, "3490", &hints, &serverInfo)) != 0) {
+  if ((status = getaddrinfo(*argv[0], "3490", &hints, &serverInfo)) != 0) {
     std::cout << "Could Not Recieve server information: "
               << gai_strerror(status) << '\n';
     exit(1);
   }
-  return 0;
-}
 
-Server::Server() { init(); }
+  std::cout << serverInfo->ai_addr;
+}
 
 Server::~Server() { cleanup(); }
 

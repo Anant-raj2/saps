@@ -1,16 +1,16 @@
 project "Server"
-  file {"src/**.cpp", "src/**.h"}
+  files {"src/**.cpp", "src/**.h"}
   language "C++"
-  kind "ConsoleApp",
+  kind "ConsoleApp"
   staticruntime "off"
 
-  includedir{
+  includedirs{
     "src",
     "%{wks.location}/common/src"
   }
 
   targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
-  targetdir ("%{wks.location}/objs/" .. outputdir .. "/%{prj.name}")
+  objdir ("%{wks.location}/objs/" .. outputdir .. "/%{prj.name}")
 
   filter "configurations:Debug"
     defines { "WL_DEBUG" }
