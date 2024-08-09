@@ -18,8 +18,9 @@ private:
   // Recieve from a connection
 
 public:
-  Server(int& argc, char **argv[]);
+  Server();
   ~Server();
-  //Run the Server
+  // Run the Server
+  void Listen();
 };
 } // namespace ServerLayer
