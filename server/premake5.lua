@@ -2,6 +2,7 @@ project "Server"
   files {"src/**.cpp", "src/**.h"}
   language "C++"
   kind "ConsoleApp"
+  cppdialect "C++17"
   staticruntime "off"
 
   includedirs{

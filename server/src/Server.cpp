@@ -45,39 +45,40 @@ Server::Server() {
 
 Server::~Server() { cleanup(); }
 
-void Server::Write(){
-  char buffer[1024];
-  int len = strlen(buffer);
+void Server::Write() {
+  char writeBuffer[1024];
+  int len = strlen(writeBuffer);
   char prefix[] = "[Server]: ";
 
   while (true) {
-    std::cin >> buffer;
+    std::cin >> writeBuffer;
 
-    int bytes_sent = send(clientFd, strcat(prefix, buffer), len+sizeof(prefix), 0);
+    int bytes_sent = send(clientFd, writeBuffer, len, 0);
     if (bytes_sent < len) {
-      std::cout << "packets were lost " << errno;
+      std::cout << "Write packets were lost " << errno;
       break;
     }
-    memset(&buffer, 0, sizeof(buffer));
+    memset(&writeBuffer, 0, sizeof(writeBuffer));
   }
 }
 
-void Server::Recieve(){
-  char buffer[1024];
-  int len = strlen(buffer);
+void Server::Recieve() {
+
+  char readBuffer[1024];
+
   char prefix[] = "[Client]: ";
 
+  int len = strlen(readBuffer);
+
   while (true) {
-    std::cin >> buffer;
-
-    int bytes_read = recv(clientFd, strcat(prefix, buffer), len+sizeof(prefix), 0);
-
+    int bytes_read = recv(clientFd, &readBuffer, len, 0);
     if (bytes_read == -1) {
-      std::cout << "packets were lost " << errno;
+      std::cout << "Read packets were lost " << errno;
       break;
     }
+    std::cout << prefix << readBuffer << '\n';
 
-    memset(&buffer, 0, sizeof(buffer));
+    memset(&readBuffer, 0, sizeof(readBuffer));
   }
 }
 
@@ -91,8 +92,8 @@ void Server::Start() {
   }
   clientFd = accept(serverFd, (struct sockaddr *)&clientInfo, &addrSize);
 
-  std::thread writeThread(&Server::Write);
-  std::thread readThread(&Server::Recieve);
+  std::thread writeThread(&Server::Write, this);
+  std::thread readThread(&Server::Recieve, this);
 
   writeThread.join();
   readThread.join();
@@ -103,5 +104,3 @@ void Server::cleanup() {
   freeaddrinfo(serverInfo);
 }
 } // namespace ServerLayer
-//
-//
