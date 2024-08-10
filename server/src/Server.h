@@ -24,6 +24,8 @@ public:
   Server();
   ~Server();
   // Run the Server
-  void Listen();
+  void Start();
+  void Recieve();
+  void Write();
 };
 } // namespace ServerLayer

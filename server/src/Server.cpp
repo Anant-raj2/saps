@@ -7,6 +7,8 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <thread>
+#include <unistd.h>
 
 namespace ServerLayer {
 Server::Server() {
@@ -43,11 +45,45 @@ Server::Server() {
 
 Server::~Server() { cleanup(); }
 
-void Server::Listen() {
-  socklen_t addrSize = sizeof(clientInfo);
-  char message[1024];
+void Server::Write(){
+  char buffer[1024];
+  int len = strlen(buffer);
+  char prefix[] = "[Server]: ";
 
-  int len = strlen(message);
+  while (true) {
+    std::cin >> buffer;
+
+    int bytes_sent = send(clientFd, strcat(prefix, buffer), len+sizeof(prefix), 0);
+    if (bytes_sent < len) {
+      std::cout << "packets were lost " << errno;
+      break;
+    }
+    memset(&buffer, 0, sizeof(buffer));
+  }
+}
+
+void Server::Recieve(){
+  char buffer[1024];
+  int len = strlen(buffer);
+  char prefix[] = "[Client]: ";
+
+  while (true) {
+    std::cin >> buffer;
+
+    int bytes_read = recv(clientFd, strcat(prefix, buffer), len+sizeof(prefix), 0);
+
+    if (bytes_read == -1) {
+      std::cout << "packets were lost " << errno;
+      break;
+    }
+
+    memset(&buffer, 0, sizeof(buffer));
+  }
+}
+
+void Server::Start() {
+  socklen_t addrSize = sizeof(clientInfo);
+
   int status = listen(serverFd, 5);
   if (status != 0) {
     std::cout << "Server Couldn't listening " << errno << '\n';
@@ -55,18 +91,17 @@ void Server::Listen() {
   }
   clientFd = accept(serverFd, (struct sockaddr *)&clientInfo, &addrSize);
 
-  while (true) {
-    std::cin >> message;
-    message[len+1] = '\n';
-    int bytes_sent = send(clientFd, message, len, 0);
-    if (bytes_sent < len) {
-      std::cout << "packets were lost " << errno;
-    }
+  std::thread writeThread(&Server::Write);
+  std::thread readThread(&Server::Recieve);
 
-    memset(&message, 0, sizeof(message));
-  }
+  writeThread.join();
+  readThread.join();
 }
 
-void Server::cleanup() { freeaddrinfo(serverInfo); }
+void Server::cleanup() {
+  close(serverFd);
+  freeaddrinfo(serverInfo);
+}
 } // namespace ServerLayer
+//
 //
