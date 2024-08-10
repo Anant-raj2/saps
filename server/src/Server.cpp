@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iostream>
 #include <netdb.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <thread>
@@ -88,6 +89,22 @@ void Server::Recieve() {
     memset(&readBuffer, 0, sizeof(readBuffer));
   }
 }
+
+// Create the serverFd
+// Add the serverFd to the pdfsList
+// Realloc the pdfsList if neccassary
+// create the add (Realloc), delete(Realloc) pdfsList utility functions
+// Start the polling
+// Check to see if anyone is able to work
+// If it is the listener that is ready to read then
+// If it is the listener, then go ahead and add a new clientFd and add it to the
+// poller
+// If it isn't the listener then send the data that is ready to send to the
+// listener When if send the data we have to check for errors to see if the data
+// was sent properly if the data is bad and couldn't send then delete the
+// clientFd and delete it from the poll list
+// if the data is good than broadcast it to all of the connections that are in
+// the poll list excpet the listener and ourselves
 
 void Server::Start() {
   socklen_t addrSize = sizeof(clientInfo);

@@ -1,5 +1,6 @@
 #pragma once
 #include <netdb.h>
+#include <poll.h>
 #include <sys/socket.h>
 
 namespace ServerLayer {
@@ -9,6 +10,7 @@ private:
   int serverFd;
   int clientFd;
   struct sockaddr_storage clientInfo;
+  struct pollfd pfds[3];
 
 private:
   // Initialize the socket and to a port
