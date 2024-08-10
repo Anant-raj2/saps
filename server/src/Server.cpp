@@ -57,7 +57,7 @@ void Server::Write() {
   char prefix[] = "[Server]: ";
 
   while (true) {
-    std::cout << "Started Write thread" << '\n';
+    std::cout << "Writing..." << '\n';
     std::cin >> writeBuffer;
 
     int bytes_sent = send(clientFd, writeBuffer, len, 0);
@@ -69,53 +69,8 @@ void Server::Write() {
   }
 }
 
-void serve_connection(int sockfd) {
-  // Clients attempting to connect and send data will succeed even before the
-  // connection is accept()-ed by the server. Therefore, to better simulate
-  // blocking of other clients while one is being served, do this "ack" from the
-  // server which the client expects to see before proceeding.
-  if (send(sockfd, "*", 1, 0) < 1) {
-    perror_die("send");
-  }
-
-  ProcessingState state = WAIT_FOR_MSG;
-
-  while (1) {
-    uint8_t buf[1024];
-    int len = recv(sockfd, buf, sizeof buf, 0);
-    if (len < 0) {
-      perror_die("recv");
-    } else if (len == 0) {
-      break;
-    }
-
-    for (int i = 0; i < len; ++i) {
-      switch (state) {
-      case WAIT_FOR_MSG:
-        if (buf[i] == '^') {
-          state = IN_MSG;
-        }
-        break;
-      case IN_MSG:
-        if (buf[i] == '$') {
-          state = WAIT_FOR_MSG;
-        } else {
-          buf[i] += 1;
-          if (send(sockfd, &buf[i], 1, 0) < 1) {
-            perror("send error");
-            close(sockfd);
-            return;
-          }
-        }
-        break;
-      }
-    }
-  }
-
-  close(sockfd);
-}
-
 void Server::Recieve() {
+  std::cout << "Started Read thread" << '\n';
 
   char readBuffer[BUFSIZE];
 
@@ -123,37 +78,45 @@ void Server::Recieve() {
 
   int len = strlen(readBuffer);
 
-  while (true) {
-    int bytes_read = recv(clientFd, &readBuffer, len, 0);
-    if (bytes_read == -1) {
-      std::cout << "Read packets were lost " << errno;
-      break;
+  while (1) {
+    struct sockaddr_in peer_addr;
+    socklen_t peer_addr_len = sizeof(peer_addr);
+
+    int newsockfd =
+        accept(sockfd, (struct sockaddr *)&peer_addr, &peer_addr_len);
+
+    if (newsockfd < 0) {
+      perror_die("ERROR on accept");
     }
-    std::cout << prefix << readBuffer << '\n';
 
-    memset(&readBuffer, 0, sizeof(readBuffer));
+    report_peer_connected(&peer_addr, peer_addr_len);
+    serve_connection(newsockfd);
+    printf("peer done\n");
   }
-}
 
-void Server::Start() {
-  socklen_t addrSize = sizeof(clientInfo);
+  void Server::Start() {
+    socklen_t addrSize = sizeof(clientInfo);
 
-  int status = listen(serverFd, 5);
-  if (status != 0) {
-    std::cout << "Server Couldn't listening " << errno << '\n';
-    exit(status);
+    if (listen(serverFd, 5) == 0) {
+      std::cout << "Listening on ip: " << IPADDR << '\n';
+    } else {
+      std::cout << "Failed to listen...";
+      exit(1);
+    }
+    while (true) {
+      int clientFd =
+          accept(serverFd, (struct sockaddr *)&clientInfo, &addrSize);
+
+      std::thread writeThread(&Server::Write, this);
+      std::thread readThread(&Server::Recieve, this);
+
+      writeThread.join();
+      readThread.join();
+    }
   }
-  clientFd = accept(serverFd, (struct sockaddr *)&clientInfo, &addrSize);
 
-  std::thread writeThread(&Server::Write, this);
-  // std::thread readThread(&Server::Recieve, this);
-  //
-  writeThread.join();
-  // readThread.join();
-}
-
-void Server::cleanup() {
-  close(serverFd);
-  freeaddrinfo(serverInfo);
-}
+  void Server::cleanup() {
+    close(serverFd);
+    freeaddrinfo(serverInfo);
+  }
 } // namespace ServerLayer

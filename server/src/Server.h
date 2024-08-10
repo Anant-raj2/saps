@@ -7,7 +7,6 @@ class Server {
 private:
   // The file descriptor that will be connected to the server socket
   int serverFd;
-  int clientFd;
   struct addrinfo *serverInfo;
   struct sockaddr_storage clientInfo;
 
