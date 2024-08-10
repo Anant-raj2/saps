@@ -17,7 +17,7 @@
 namespace ServerLayer {
 Server::Server() {
   int status;
-  struct addrinfo hints;
+  struct addrinfo hints, *serverInfo, *index;
 
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
@@ -29,22 +29,20 @@ Server::Server() {
     exit(status);
   }
 
-  serverFd = socket(serverInfo->ai_family, serverInfo->ai_socktype,
-                    serverInfo->ai_protocol);
+  for (index = serverInfo; index != nullptr; index = index->ai_next) {
+    if ((serverFd = socket(index->ai_family, index->ai_socktype,
+                           serverInfo->ai_protocol)) != 0) {
+      std::cout << "Could not initialize server file descriptor! " << errno
+                << '\n';
+      exit(1);
+    }
 
-  if (serverFd == -1) {
-    std::cout << "Could not initialize server file descriptor! " << errno
-              << '\n';
-    exit(serverFd);
+    if ((bind(serverFd, index->ai_addr, index->ai_addrlen)) != 0) {
+      std::cout << "Could not bind server file descriptor! " << errno << '\n';
+      exit(1);
+    }
   }
-
-  status = bind(serverFd, serverInfo->ai_addr, serverInfo->ai_addrlen);
-  if (status == -1) {
-    std::cout << "Could not bind server file descriptor! " << errno << '\n';
-    exit(status);
-  }
-
-  std::cout << "Server bound" << '\n';
+  freeaddrinfo(serverInfo);
 }
 
 Server::~Server() { cleanup(); }
@@ -78,45 +76,37 @@ void Server::Recieve() {
 
   int len = strlen(readBuffer);
 
-  while (1) {
-    struct sockaddr_in peer_addr;
-    socklen_t peer_addr_len = sizeof(peer_addr);
-
-    int newsockfd =
-        accept(sockfd, (struct sockaddr *)&peer_addr, &peer_addr_len);
-
-    if (newsockfd < 0) {
-      perror_die("ERROR on accept");
+  while (true) {
+    std::cout << "Reading..." << '\n';
+    int bytes_read = recv(clientFd, &readBuffer, len, 0);
+    if (bytes_read == -1) {
+      std::cout << "Read packets were lost " << errno;
+      break;
     }
+    std::cout << prefix << readBuffer << '\n';
 
-    report_peer_connected(&peer_addr, peer_addr_len);
-    serve_connection(newsockfd);
-    printf("peer done\n");
+    memset(&readBuffer, 0, sizeof(readBuffer));
+  }
+}
+
+void Server::Start() {
+  socklen_t addrSize = sizeof(clientInfo);
+
+  if (listen(serverFd, 5) == 0) {
+    std::cout << "Listening on ip: " << IPADDR << '\n';
+  } else {
+    std::cout << "Failed to listen...";
+    exit(1);
   }
 
-  void Server::Start() {
-    socklen_t addrSize = sizeof(clientInfo);
+  clientFd = accept(serverFd, (struct sockaddr *)&clientInfo, &addrSize);
 
-    if (listen(serverFd, 5) == 0) {
-      std::cout << "Listening on ip: " << IPADDR << '\n';
-    } else {
-      std::cout << "Failed to listen...";
-      exit(1);
-    }
-    while (true) {
-      int clientFd =
-          accept(serverFd, (struct sockaddr *)&clientInfo, &addrSize);
+  std::thread writeThread(&Server::Write, this);
+  std::thread readThread(&Server::Recieve, this);
 
-      std::thread writeThread(&Server::Write, this);
-      std::thread readThread(&Server::Recieve, this);
+  writeThread.join();
+  readThread.join();
+}
 
-      writeThread.join();
-      readThread.join();
-    }
-  }
-
-  void Server::cleanup() {
-    close(serverFd);
-    freeaddrinfo(serverInfo);
-  }
+void Server::cleanup() { close(serverFd); }
 } // namespace ServerLayer
