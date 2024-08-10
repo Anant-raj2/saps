@@ -10,6 +10,10 @@
 #include <thread>
 #include <unistd.h>
 
+#define IPADDR "127.0.0.1"
+#define PORT "3000"
+#define BUFSIZE 1024
+
 namespace ServerLayer {
 Server::Server() {
   int status;
@@ -19,7 +23,7 @@ Server::Server() {
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
 
-  if ((status = getaddrinfo("127.0.0.1", "3000", &hints, &serverInfo)) != 0) {
+  if ((status = getaddrinfo(IPADDR, PORT, &hints, &serverInfo)) != 0) {
     std::cout << "Could Not Recieve server information: "
               << gai_strerror(status) << '\n';
     exit(status);
@@ -46,11 +50,14 @@ Server::Server() {
 Server::~Server() { cleanup(); }
 
 void Server::Write() {
-  char writeBuffer[1024];
+  std::cout << "Started Write thread" << '\n';
+
+  char writeBuffer[BUFSIZE];
   int len = strlen(writeBuffer);
   char prefix[] = "[Server]: ";
 
   while (true) {
+    std::cout << "Started Write thread" << '\n';
     std::cin >> writeBuffer;
 
     int bytes_sent = send(clientFd, writeBuffer, len, 0);
@@ -62,9 +69,55 @@ void Server::Write() {
   }
 }
 
+void serve_connection(int sockfd) {
+  // Clients attempting to connect and send data will succeed even before the
+  // connection is accept()-ed by the server. Therefore, to better simulate
+  // blocking of other clients while one is being served, do this "ack" from the
+  // server which the client expects to see before proceeding.
+  if (send(sockfd, "*", 1, 0) < 1) {
+    perror_die("send");
+  }
+
+  ProcessingState state = WAIT_FOR_MSG;
+
+  while (1) {
+    uint8_t buf[1024];
+    int len = recv(sockfd, buf, sizeof buf, 0);
+    if (len < 0) {
+      perror_die("recv");
+    } else if (len == 0) {
+      break;
+    }
+
+    for (int i = 0; i < len; ++i) {
+      switch (state) {
+      case WAIT_FOR_MSG:
+        if (buf[i] == '^') {
+          state = IN_MSG;
+        }
+        break;
+      case IN_MSG:
+        if (buf[i] == '$') {
+          state = WAIT_FOR_MSG;
+        } else {
+          buf[i] += 1;
+          if (send(sockfd, &buf[i], 1, 0) < 1) {
+            perror("send error");
+            close(sockfd);
+            return;
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  close(sockfd);
+}
+
 void Server::Recieve() {
 
-  char readBuffer[1024];
+  char readBuffer[BUFSIZE];
 
   char prefix[] = "[Client]: ";
 
@@ -93,10 +146,10 @@ void Server::Start() {
   clientFd = accept(serverFd, (struct sockaddr *)&clientInfo, &addrSize);
 
   std::thread writeThread(&Server::Write, this);
-  std::thread readThread(&Server::Recieve, this);
-
+  // std::thread readThread(&Server::Recieve, this);
+  //
   writeThread.join();
-  readThread.join();
+  // readThread.join();
 }
 
 void Server::cleanup() {
