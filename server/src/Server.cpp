@@ -1,4 +1,5 @@
 #include "Server.h"
+#include "PollHandler.h"
 #include <arpa/inet.h>
 #include <cerrno>
 #include <cstdlib>
@@ -6,17 +7,23 @@
 #include <iostream>
 #include <netdb.h>
 #include <poll.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
+#include <vector>
 
 #define IPADDR "127.0.0.1"
 #define PORT "3000"
 #define BUFSIZE 1024
 
+std::vector<struct pollfd> *PollHandler::pollList;
+
 namespace ServerLayer {
+
 Server::Server() {
+
   int status;
   struct addrinfo hints, *serverInfo, *index;
 

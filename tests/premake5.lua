@@ -3,15 +3,16 @@ project "Tests"
   kind "ConsoleApp"
   language "C++"
   files {"**.cpp"}
-  targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
-  objdir ("%{wks.location}/objs/" .. outputdir .. "/%{prj.name}")
+  targetdir ("%{wks.location}/tests/bin/" .. outputdir .. "/%{prj.name}")
+  objdir ("%{wks.location}/tests/objs/" .. outputdir .. "/%{prj.name}")
 
   includedirs {
-    "%{wks.location}/server"
+    "%{wks.location}/server/src"
   }
 
   links {
-   "Server"
+   "Server",
+    "googletest"
   }
 
   filter "configurations:Debug"
