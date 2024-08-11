@@ -1,32 +1,27 @@
 #include "PollHandler.h"
+#include <cstdlib>
 #include <sys/poll.h>
 
-struct pollfd *PollHandler::CreatePollVector(int size) {
-  struct pollfd *pollList = new struct pollfd[size];
+struct pollfd *PollHandler::CreatePollVector(int size, int newCapacity) {
+  struct pollfd *pollList = malloc(sizeof *pfds * fd_size);
+  fd_count++;
+  capacity = newCapacity;
   return pollList;
 }
 
 void PollHandler::AddFD(int fd) {
-  if (size == capacity) {
+  if (fd_count == capacity) {
     capacity *= 2;
-    struct pollfd *temp = new struct pollfd[capacity];
-    for (int i = 0; i < size; i++) {
-      pollList[i] = temp[i];
-    }
-    delete[] pollList;
-
-    pollList = temp;
-
-    pollList[size] = {.fd = fd, .events = POLLIN};
-
-    fd_count++;
-    size++;
-    return;
+    pollList = (struct pollfd *)realloc(pollList, sizeof(*pollList) * 2);
   }
-  pollList[size] = {.fd = fd, .events = POLLIN};
+  pollList[fd_count].fd = fd;
+  pollList[fd_count].events = POLLIN;
+
   fd_count++;
-  size++;
-  return;
+}
+
+void PollHandler::CleanUp(){
+  free(pollList);
 }
 
 PollHandler::PollHandler() = default;

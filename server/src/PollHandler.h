@@ -5,10 +5,9 @@ class PollHandler {
 public:
   static struct pollfd *pollList;
   static int fd_count;
-  static int size;
   static int capacity;
 
-  static struct pollfd *CreatePollVector(int size);
+  static struct pollfd *CreatePollVector(int size, int newCapacity);
 
   static void AddFD(int fd);
   static void DeletePoll(int index);
