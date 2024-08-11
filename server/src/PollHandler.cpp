@@ -2,14 +2,13 @@
 #include <sys/poll.h>
 #include <vector>
 
-std::vector<struct pollfd> *PollHandler::CreatePollVector(int listenerFD) {
+std::vector<struct pollfd> *PollHandler::CreatePollVector() {
   pollList = new std::vector<struct pollfd>();
-  pollList->push_back({.fd = listenerFD, .events = POLLIN});
   return pollList;
 }
 
-void PollHandler::AddPoll(struct pollfd &client) {
-  pollList->push_back(client);
+void PollHandler::AddPoll(int fd) {
+  pollList->push_back({.fd = fd, .events = POLLIN});
 }
 
 void PollHandler::DeletePoll(int index) {

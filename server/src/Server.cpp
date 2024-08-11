@@ -21,34 +21,53 @@
 namespace ServerLayer {
 
 Server::Server() {
+  if (create_listener_fd() != 0) {
+    std::cout << "Could not create listener!" << '\n';
+  }
+}
 
-  int status;
-  struct addrinfo hints, *serverInfo, *index;
+// Sets the serverFd to the accquired fd
+int Server::create_listener_fd() {
+  struct addrinfo *serverInfo, hints, *index;
 
   memset(&hints, 0, sizeof(hints));
+
   hints.ai_family = AF_INET;
-  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_socktype = AF_INET;
 
-  if ((status = getaddrinfo(IPADDR, PORT, &hints, &serverInfo)) != 0) {
-    std::cout << "Could Not Recieve server information: "
-              << gai_strerror(status) << '\n';
-    exit(status);
+  int yes{};
+
+  if ((yes = getaddrinfo(IPADDR, PORT, &hints, &serverInfo)) != 0) {
+    std::cout << "Could not initialize Server Info: " << gai_strerror(yes)
+              << '\n';
+    return -1;
   }
 
-  for (index = serverInfo; index != nullptr; index = index->ai_next) {
-    if ((serverFd = socket(index->ai_family, index->ai_socktype,
-                           serverInfo->ai_protocol)) != 0) {
-      std::cout << "Could not initialize server file descriptor! " << errno
+  for (index = serverInfo; index != nullptr; index = serverInfo->ai_next) {
+    if ((serverFd = socket(serverInfo->ai_family, serverInfo->ai_socktype,
+                           serverInfo->ai_protocol)) < 0) {
+      std::cout << "Could not initialize the file descriptor: " << errno
                 << '\n';
-      exit(1);
+      return -1;
     }
-
-    if ((bind(serverFd, index->ai_addr, index->ai_addrlen)) != 0) {
-      std::cout << "Could not bind server file descriptor! " << errno << '\n';
-      exit(1);
+    if ((bind(serverFd, serverInfo->ai_addr, serverInfo->ai_addrlen)) < 0) {
+      std::cout << "Could not bind to " << IPADDR << "::" << PORT << " "
+                << errno << '\n';
+      return -1;
     }
   }
+
   freeaddrinfo(serverInfo);
+
+  if (index != nullptr) {
+    std::cout << "Could not bind to " << IPADDR << "::" << PORT << " " << errno
+              << '\n';
+  }
+
+  if (listen(serverFd, 10)) {
+    return -1;
+  }
+  return 0;
 }
 
 Server::~Server() { cleanup(); }
@@ -112,22 +131,14 @@ void Server::Recieve() {
 // the poll list excpet the listener and ourselves
 
 void Server::Start() {
-  socklen_t addrSize = sizeof(clientInfo);
+  struct sockaddr_storage clientAddr;
 
-  if (listen(serverFd, 5) == 0) {
-    std::cout << "Listening on ip: " << IPADDR << '\n';
-  } else {
-    std::cout << "Failed to listen...";
-    exit(1);
+  PollHandler::AddPoll(serverFd);
+
+  while(isRunning){
+    int fd_count = PollHandler::pollList->size();
+    int poll_count = poll(*PollHandler::pollList, fd_count, -1);
   }
-
-  clientFd = accept(serverFd, (struct sockaddr *)&clientInfo, &addrSize);
-
-  std::thread writeThread(&Server::Write, this);
-  std::thread readThread(&Server::Recieve, this);
-
-  writeThread.join();
-  readThread.join();
 }
 
 void Server::cleanup() { close(serverFd); }
