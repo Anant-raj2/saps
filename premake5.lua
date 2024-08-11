@@ -1,4 +1,4 @@
-require "actions"
+require "actions/clean"
 workspace "Saps"
   configurations { "Debug", "Release", "Dist"}
   architecture "x86_64"

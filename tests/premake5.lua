@@ -7,13 +7,14 @@ project "Tests"
   objdir ("%{wks.location}/tests/objs/" .. outputdir .. "/%{prj.name}")
 
   includedirs {
-    "%{wks.location}/server/src"
+    "%{wks.location}/server/src",
+    "%{wks.location}/googletest/googletest/include"
   }
 
-  links {
-   "Server",
-    "googletest"
-  }
+links {
+  "Server",
+  "GTest"
+}
 
   filter "configurations:Debug"
     defines { "WL_DEBUG" }
