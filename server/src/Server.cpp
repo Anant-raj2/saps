@@ -18,8 +18,6 @@
 #define PORT "3000"
 #define BUFSIZE 1024
 
-std::vector<struct pollfd> *PollHandler::pollList;
-
 namespace ServerLayer {
 
 Server::Server() {
