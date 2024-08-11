@@ -20,11 +20,7 @@
 
 namespace ServerLayer {
 
-Server::Server() {
-  if (create_listener_fd() != 0) {
-    std::cout << "Could not create listener!" << '\n';
-  }
-}
+Server::Server() { create_listener_fd(); }
 
 // Sets the serverFd to the accquired fd
 int Server::create_listener_fd() {
@@ -130,16 +126,24 @@ void Server::Recieve() {
 // if the data is good than broadcast it to all of the connections that are in
 // the poll list excpet the listener and ourselves
 
-// void Server::Start() {
-//   struct sockaddr_storage clientAddr;
-//
-//   PollHandler::AddPoll(serverFd);
-//
-//   while(isRunning){
-//     int fd_count = PollHandler::pollList->size();
-//     int poll_count = poll(PollHandler::pollList, fd_count, -1);
-//   }
-// }
+void Server::Start() {
+  socklen_t addrSize = sizeof(clientInfo);
+
+  if (listen(serverFd, 5) == 0) {
+    std::cout << "Listening on ip: " << IPADDR << '\n';
+  } else {
+    std::cout << "Failed to listen...";
+    exit(1);
+  }
+
+  clientFd = accept(serverFd, (struct sockaddr *)&clientInfo, &addrSize);
+
+  std::thread writeThread(&Server::Write, this);
+  std::thread readThread(&Server::Recieve, this);
+
+  writeThread.join();
+  readThread.join();
+}
 
 void Server::cleanup() { close(serverFd); }
 } // namespace ServerLayer

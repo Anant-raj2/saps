@@ -1,14 +1,19 @@
 #pragma once
 #include <sys/poll.h>
-#include <vector>
 
 class PollHandler {
 public:
-  static std::vector<struct pollfd> *pollList;
-  static std::vector<struct pollfd> *CreatePollVector();
-  static void AddPoll(int fd);
+  static struct pollfd *pollList;
+  static int fd_count;
+  static int size;
+  static int capacity;
+
+  static struct pollfd *CreatePollVector(int size);
+
+  static void AddFD(int fd);
   static void DeletePoll(int index);
   static void CleanUp();
+
 private:
   PollHandler();
 };

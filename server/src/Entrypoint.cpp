@@ -1,32 +1,22 @@
 #include "PollHandler.h"
 #include <iostream>
 #include <sys/poll.h>
-#include <vector>
 
-std::vector<struct pollfd> *PollHandler::pollList =
-    PollHandler::CreatePollVector();
+struct pollfd *PollHandler::pollList = PollHandler::CreatePollVector(5);
+int PollHandler::capacity{};
+int PollHandler::size{};
+int PollHandler::fd_count{};
 
 int main() {
   // std::unique_ptr<ServerLayer::Server> server =
   //     std::make_unique<ServerLayer::Server>();
   // server->Start();
   //
-  PollHandler::AddPoll(2);
-  PollHandler::AddPoll(3);
-  PollHandler::AddPoll(4);
-  PollHandler::AddPoll(5);
-  PollHandler::AddPoll(6);
-  for (struct pollfd element : *PollHandler::pollList) {
-    std::cout << element.fd << ' ';
+  for (int i; i < PollHandler::fd_count; i++) {
+    std::cout << PollHandler::pollList[i].fd << ' ';
   }
-  std::cout << '\n';
-  PollHandler::DeletePoll(3);
-  for (struct pollfd element : *PollHandler::pollList) {
-    std::cout << element.fd << ' ';
-  }
-  std::cout << '\n';
-  PollHandler::CleanUp();
-  for (struct pollfd element : *PollHandler::pollList) {
-    std::cout << element.fd << ' ';
+  PollHandler::AddFD(2);
+  for (int i; i < PollHandler::fd_count; i++) {
+    std::cout << PollHandler::pollList[i].fd << ' ';
   }
 }
